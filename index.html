@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>AskTreker — Трекер привычек</title>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --primary: #4f46e5;
+      --text: #1f2937;
+      --muted: #9ca3af;
+      --success: #10b981;
+      --danger: #ef4444;
+      --orange: #f97316;
+    }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 16px;
+    }
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-box {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-value {
+      font-weight: 700;
+      font-size: 22px;
+      line-height: 1;
+    }
+    .today-value { color: var(--primary); }
+    .month-value { color: var(--orange); }
+
+    .progress-section {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .progress-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .progress-bar-bg {
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+      flex: 1;
+      margin-left: 16px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--success);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .habit-form {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+    }
+    button {
+      padding: 10px 16px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover { opacity: 0.9; }
+
+    ul { list-style: none; padding: 0; margin: 0; }
+    .habit-item {
+      background: var(--card);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .habit-name { font-weight: 500; }
+    .streak-badge {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 20px;
+      background: #f3f4f6;
+      color: var(--muted);
+      margin-right: 10px;
+    }
+    .streak-active {
+      background: var(--success);
+      color: white;
+    }
+    .toggle-btn {
+      background: transparent;
+      color: var(--muted);
+      padding: 6px 10px;
+      border: 1px solid var(--muted);
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    .toggle-btn.active {
+      background: var(--success);
+      color: white;
+      border-color: var(--success);
+    }
+    .delete-btn {
+      background: transparent;
+      color: var(--danger);
+      padding: 6px 10px;
+      border: 1px solid var(--danger);
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      margin-left: 6px;
+    }
+    .delete-btn:hover {
+      background: var(--danger);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>AskTreker</h1>
+
+    <!-- Счётчики -->
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-label">Сделано сегодня</div>
+        <div id="today-count" class="stat-value today-value">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Сделано за месяц</div>
+        <div id="month-count" class="stat-value month-value">0</div>
+      </div>
+    </div>
+
+    <!-- Прогресс-бары (накопительные) -->
+    <div class="progress-section">
+      <div class="progress-row">
+        <span>Прогресс дня (всего привычек)</span>
+        <div class="progress-bar-bg">
+          <div id="daily-progress-fill" class="progress-bar-fill"></div>
+        </div>
+      </div>
+      <div class="progress-row">
+        <span>Прогресс месяца (всего привычек)</span>
+        <div class="progress-bar-bg">
+          <div id="monthly-progress-fill" class="progress-bar-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Добавление привычки -->
+    <form id="habit-form" class="habit-form">
+      <input type="text" id="habit-name" placeholder="Название привычки" required />
+      <button type="submit">Добавить</button>
+    </form>
+
+    <!-- Список привычек -->
+    <ul id="habits-list"></ul>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'asktreker_v4';
+
+    function loadData() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return { habits: [] };
+      return JSON.parse(raw);
+    }
+
+    function saveData(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    let state = loadData();
+
+    // Сброс doneToday при новом дне
+    function checkDayReset() {
+      const lastCheck = localStorage.getItem('lastCheckDate');
+      const today = new Date().toISOString().split('T')[0];
+      if (lastCheck !== today) {
+        state.habits.forEach(h => h.doneToday = false);
+        localStorage.setItem('lastCheckDate', today);
+        saveData(state);
+        render();
+      }
+    }
+
+    function render() {
+      // Считаем статистику
+      const totalHabits = state.habits.length;
+      const doneToday = state.habits.filter(h => h.doneToday).length;
+      const doneMonth = state.habits.filter(h => h.doneThisMonth).length;
+
+      // Счётчики
+      document.getElementById('today-count').textContent = doneToday;
+      document.getElementById('month-count').textContent = doneMonth;
+
+      // Прогресс-бары: доля от общего количества привычек
+      const dailyPercent = totalHabits > 0 ? Math.min(Math.round((doneToday / totalHabits) * 100), 100) : 0;
+      const monthlyPercent = totalHabits > 0 ? Math.min(Math.round((doneMonth / totalHabits) * 100), 100) : 0;
+
+      document.getElementById('daily-progress-fill').style.width = dailyPercent + '%';
+      document.getElementById('monthly-progress-fill').style.width = monthlyPercent + '%';
+
+      // Список привычек
+      const list = document.getElementById('habits-list');
+      list.innerHTML = '';
+      state.habits.forEach((h, i) => {
+        const li = document.createElement('li');
+        li.className = 'habit-item';
+        // Показываем streak только если он больше 0
+        const streakHtml = h.streak > 0
+          ? `<span class="streak-badge ${h.streak > 0 ? 'streak-active' : ''}">${h.streak} дн.</span>`
+          : '';
+        li.innerHTML = `
+          <div style="display:flex; align-items:center; gap:8px;">
+            ${streakHtml}
+            <span class="habit-name">${escapeHtml(h.name)}</span>
+          </div>
+          <div>
+            <button type="button" class="toggle-btn ${h.doneToday ? 'active' : ''}"
+              onclick="toggleHabit(${i}, 'doneToday')">
+              ${h.doneToday ? 'Сделано' : 'Сделать'}
+            </button>
+            <button type="button" class="delete-btn"
+              onclick="deleteHabit(${i})">Удалить</button>
+          </div>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    window.toggleHabit = function(index, field) {
+      const habit = state.habits[index];
+      const wasDone = habit[field];
+      habit[field] = !wasDone;
+
+      // Логика streak: если сегодня сделали и до этого не делали — начинаем/продолжаем streak
+      if (field === 'doneToday' && !wasDone) {
+        habit.streak = (habit.streak || 0) + 1;
+      } else if (field === 'doneToday' && wasDone) {
+        // Если сняли отметку — streak не сбрасываем сразу, можно усложнить позже
+      }
+
+      saveData(state);
+      render();
+    };
+
+    window.deleteHabit = function(index) {
+      if (!confirm('Точно удалить эту привычку?')) return;
+      state.habits.splice(index, 1);
+      saveData(state);
+      render();
+    };
+
+    document.getElementById('habit-form').addEventListener('submit', e => {
+      e.preventDefault();
+      const name = document.getElementById('habit-name').value.trim();
+      if (!name) return;
+      state.habits.push({
+        name,
+        doneToday: false,
+        doneThisMonth: false,
+        streak: 0
+      });
+      document.getElementById('habit-name').value = '';
+      saveData(state);
+      render();
+    });
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    checkDayReset();
+    render();
+  </script>
+</body>
+</html>
